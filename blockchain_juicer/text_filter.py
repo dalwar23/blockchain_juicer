@@ -4,7 +4,6 @@
 from __future__ import print_function
 
 # Import python libraries
-import os
 import sys
 import argparse
 import subprocess
@@ -14,6 +13,9 @@ except ImportError:
     print('Can not import pyrainbowterm!', log_type='error')
     print('Try: pip install pyrainbowterm', log_type='hint')
     sys.exit(1)
+
+# Import file_operations
+import file_operations
 
 # Source code meta data
 __author__ = 'Dalwar Hossain'
@@ -31,10 +33,11 @@ def create_command(input_file, columns_to_use, column_separator, output_file):
     :return: A linux shell command
     """
     print('Creating text filter command.....', log_type='info')
+    column_indexes = columns_to_use.split(',')
     prefix, command_segment = ('$', '')
     count = 1
-    index_length = len(columns_to_use)
-    for item in columns_to_use:
+    index_length = len(column_indexes)
+    for item in column_indexes:
         if count < index_length:
             segment = prefix + item + '","'
             command_segment += segment
@@ -47,6 +50,8 @@ def create_command(input_file, columns_to_use, column_separator, output_file):
     else:
         delimiter = ' -F "' + column_separator + '"'
     command = "awk" + delimiter + " '{print " + command_segment + "}' " + input_file + " > " + output_file
+
+    print('Command creation complete!', log_type='info')
 
     # Return command
     return command
@@ -63,81 +68,58 @@ def create_output_file(command):
     try:
         print('Creating output file.....', log_type='info')
         subprocess.check_output(command, shell=True, universal_newlines=True).strip()
-        print('Output file creation complete!', color='green', log_type='info')
+        print('Output file creation complete!', log_type='info')
     except Exception as e:
         print('Output file creation error. ERROR: {}'.format(e), color='red', log_type='error')
         sys.exit(1)
 
 
-# Sanity check
-def sanity_check(input_file, column_indexes, column_separator, output_file):
+# Create filter columns
+def filter_columns(input_file=None, column_indexes=None, delimiter=None, output_file=None):
     """
-    This function verifies input(s)
+    This function filters text input depending on columns and delimiter
     :param input_file: A file path to raw data file
     :param column_indexes: Indexes of the columns that needs to be filtered out (index starts from 1)
-    :param column_separator: Column separator in input/output file (default is ',' [comma])
+    :param delimiter: Column separator in input/output file (default is ',' [comma])
     :param output_file: A file path where the output will be stored
-    :return: input_file, python list of column(s), column_separator, output_file
+    :return: File object
     """
-    # Check input file's status (is a file?, has right permissions?)
-    print('Checking input file status.....', log_type='info')
-    if os.access(input_file, os.F_OK):
-        print('Input file found!', log_type='info')
-        if os.access(input_file, os.R_OK):
-            print('Input file has read permission!', log_type='info')
+    # Check sanity of input
+    sanity_status = file_operations.sanity_check(input_file, column_indexes, delimiter, output_file)
+
+    # Check if sanity check is Okay
+    if sanity_status == 1:
+        if delimiter is None:
+            command_delimiter = ' '  # Using default delimiter
         else:
-            print('Input file does not has read permission!', log_type='error')
+            command_delimiter = delimiter
+        command = create_command(input_file, column_indexes, command_delimiter, output_file)
+        if command:
+            create_output_file(command)
+        else:
+            print('There was an error in command creation!', log_type='error')
             sys.exit(1)
     else:
-        print('Input file not found!', log_type='error')
+        print('Sanity check failed!', log_type='error', color='red')
         sys.exit(1)
 
-    # Check column indexes (is numeric?)
-    print('Checking column indexes.....', log_type='info')
-    try:
-        columns_to_use = column_indexes.split(',')
-    except Exception as e:
-        print('-c/--columns argument does not match input criteria! ERROR: {}'.format(e), log_type='error')
-        print('Try: -c 1,4,6,3 or --columns 1,4,6,3 [Index starts from 1, separated by comma (,)]', log_type='hint')
-        sys.exit(1)
-
-    # Check column separator
-    if column_separator is None:
-        # column_separator = ','
-        print('No column separator detected! Using default value.....', log_type='warn')
-        # print('Column separator: {}'.format(column_separator), log_type='info')
-
-    # Check output file
-    print('Checking output file.....', log_type='info')
-    if os.access(output_file, os.F_OK):
-        print("Output file already exists! Removing old file.....", log_type='warn')
-        os.remove(output_file)
-    else:
-        print('Output file does not exists yet! It will be created!', log_type='warn')
-
-    # Return checked values
-    return input_file, columns_to_use, column_separator, output_file
+    # rest of the function calls
+    pass
 
 
 # Command Center
-def command_center(input_file=None, column_indexes=None, separator=",", output_file=None):
+def command_center(input_file=None, column_indexes=None, delimiter=None, output_file=None):
     """
     This function controls rest of the functions
     :param input_file: A file path to raw data file
     :param column_indexes: Indexes of the columns that needs to be filtered out (index starts from 1)
-    :param separator: Column separator in input/output file (default is ',' [comma])
+    :param delimiter: Column separator in input/output file (default is ',' [comma])
     :param output_file: A file path where the output will be stored
     :return: NULL
     """
     print('Initializing.....', color='green', log_type='info')
-    input_file, columns_to_use, column_separator, output_file = sanity_check(input_file, column_indexes, separator,
-                                                                             output_file)
-    print('Sanity check complete!', color='green', log_type='info')
 
-    command = create_command(input_file, columns_to_use, column_separator, output_file)
-    print('Command creation complete!', color='green', log_type='info')
-
-    create_output_file(command)
+    filter_columns(input_file, column_indexes, delimiter, output_file)
 
 
 # Standard boilerplate for running this source code file as a standalone segment
@@ -152,14 +134,21 @@ if __name__ == "__main__":
                         help='Input file absolute path. E.g. /home/user/data/input/file_name.txt/.csv/.dat etc.')
     parser.add_argument('-c', '--columns', action='store', dest='columns', required=True,
                         help='Index of the columns (comma separated, index starting from 1) E.g. 1,4,2,5.')
-    parser.add_argument('-s', '--separator', action='store', dest='separator', required=False,
+    parser.add_argument('-d', '--delimiter', action='store', dest='delimiter', required=False,
                         help='Separator for the input and output file. E.g. (,)/(";" need to be quoted)/tab/space.'
-                             'Default is comma (,)')
+                             'Default is whitespace')
     parser.add_argument('-o', '--output-file', action='store', dest='output_file', required=True,
                         help='Output file absolute path. E.g. /home/user/data/output/file_name.txt/.csv/.dat etc.')
 
     # Parse arguments
     args = parser.parse_args()
 
-    command_center(input_file=args.input_file, column_indexes=args.columns, separator=args.separator,
+    # Double checking the arguments
+    if args.delimiter:
+        _delimiter = args.delimiter
+    else:
+        print('No delimiter provided! Using default (whitespace).....', log_type='info')
+        _delimiter = None
+
+    command_center(input_file=args.input_file, column_indexes=args.columns, delimiter=_delimiter,
                    output_file=args.output_file)

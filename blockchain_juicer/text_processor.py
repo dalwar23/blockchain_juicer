@@ -17,7 +17,8 @@ except ImportError:
     print('Can not import pyrainbowterm!', log_type='error')
     print('Try: pip install pyrainbowterm', log_type='hint')
     sys.exit(1)
-
+# Import file_operations
+import file_operations
 
 # Source code meta data
 __author__ = 'Dalwar Hossain'
@@ -112,16 +113,25 @@ def load_file(input_dataset, column_separator, headers):
     :param headers: Names of the columns from input dataset
     :return: Python pandas data frame
     """
+    # Check headers
     if len(headers) == 3:
         convert_dict = {'weight': clean_convert_weight}
+        columns_to_use = [0, 1, 2]
     else:
         convert_dict = {}
+        columns_to_use = [0, 1]
+
+    # Check delimiter
+    if column_separator is None:
+        delimiter = ' '
+    else:
+        delimiter = column_separator
 
     # Load input file
     print('Loading input dataset.....', log_type='info')
     try:
-        data_frame = pd.read_csv(input_dataset, delimiter=column_separator, names=headers, skipinitialspace=True,
-                                 converters=convert_dict)
+        data_frame = pd.read_csv(input_dataset, delimiter=delimiter, names=headers, skipinitialspace=True,
+                                 converters=convert_dict, comment='#', usecols=columns_to_use)
         print('Input dataset loaded successfully!', color='green', log_type='info')
     except Exception as e:
         print('Can not load input dataset. ERROR: {}'.format(e), color='red', log_type='error')
@@ -143,94 +153,48 @@ def load_file(input_dataset, column_separator, headers):
     return data_frame
 
 
-# Sanity check
-def sanity_check(input_file, weighted):
+# Create numeric mapping
+def numeric_mapper(input_file=None, delimiter=None, weighted=None):
     """
-    This function check input arguments and properties of input file
-    :param input_file: A file path, Input file's full path
-    :param weighted: Determines whether input data has a column that represents the weights of source -> target
-    :return: A python list of headers for the input file's dataset
+    This function maps the strings to numeric values
+    :param input_file: Input file path
+    :param delimiter: Column separator
+    :param weighted: yes/no if the file contains weights of the edges or not
+    :return: file object
     """
-    # Assign headers based on weighted or not
-    if weighted == "yes" or weighted == "Yes" or weighted == "Y" or weighted == "y":
-        headers = ['source', 'target', 'weight']
-    elif weighted == "no" or weighted == "No" or weighted == "N" or weighted == "n":
-        headers = ['source', 'target']
+    sanity_status = file_operations.sanity_check(input_file)
+    if sanity_status == 1:
+        headers = file_operations.generate_headers(weighted)
+        output_dir_path, output_file_name = file_operations.get_dir_path(input_file)
+        data_frame = load_file(input_file, delimiter, headers)
+        print('Data cleanup complete!', color='green', log_type='info')
+        mapping_dict = extract_nodes(data_frame)
+        print('Numeric mapping reference creation complete!', color='green', log_type='info')
+        start_time = time.time()
+        print('Numeric mapping started at: {}'.format(datetime.datetime.now().strftime("%H:%M:%S")), log_type='info')
+        numeric_data_frame = numeric_mapping(data_frame, mapping_dict)
+        mapping_end_time = time.time() - start_time
+        print('Elapsed time for mapping: ', log_type='info', end='')
+        print('{}'.format(time.strftime("%H:%M:%S", time.gmtime(mapping_end_time))), color='cyan', text_format='bold')
+        print('Numeric mapping complete!', color='green', log_type='info')
+
+        create_output_file(numeric_data_frame, output_dir_path, output_file_name)
     else:
-        print('Please provide weighted (-w) argument with yes/no, y/n, Yes/No', log_type='error')
+        print('Sanity check failed!', log_type='error', color='red')
         sys.exit(1)
-
-    # Check input file's status (is a file?, has right permissions?)
-    print('Checking input file status.....', log_type='info')
-    if os.access(input_file, os.F_OK):
-        print('Input file found!', log_type='info')
-        if os.access(input_file, os.R_OK):
-            print('Input file has read permission!', log_type='info')
-        else:
-            print('Input file does not has read permission!', log_type='error')
-            sys.exit(1)
-    else:
-        print('Input file not found!', log_type='error')
-        sys.exit(1)
-
-    # Return headers
-    return headers
-
-
-# Get directory path for input/output data
-def get_dir_path(input_file):
-    """
-    This function extracts the directory path of input file and creates a new file name for the output file
-    :param input_file: A complete file path for input dataset
-    :return: A directory path and a file name
-    """
-    # Get file name
-    input_file_name = os.path.basename(input_file)
-    # Create new file name
-    base_file_name, base_file_extension = os.path.splitext(input_file_name)
-    output_file_name = base_file_name + '_numeric' + base_file_extension
-
-    # Get input file's directory
-    input_dir = os.path.dirname(input_file)
-    if os.path.isdir(input_dir):
-        output_dir = input_dir
-    else:
-        print('Can not determine output directory!', log_type='error')
-        sys.exit(1)
-
-    # Return output path
-    return output_dir, output_file_name
 
 
 # Command Center
-def command_center(input_file=None, separator=',', weighted=None):
+def command_center(input_file=None, delimiter=None, weighted=None):
     """
     This function controls rest of the functions
     :param input_file: Input file path
-    :param separator: Optional separator for he column of the input file
+    :param delimiter: Optional separator for he column of the input file
     :param weighted: Simple yes/no if the input file is weighted or not
     :rtype: NULL
     """
     print('Initializing.....', color='green', log_type='info')
-    headers = sanity_check(input_file, weighted)
-    print('Sanity check complete!', color='green', log_type='info')
-
-    output_dir_path, output_file_name = get_dir_path(input_file)
-    data_frame = load_file(input_file, separator, headers)
-    print('Data cleanup complete!', color='green', log_type='info')
-
-    mapping_dict = extract_nodes(data_frame)
-    print('Numeric mapping reference creation complete!', color='green', log_type='info')
-
-    start_time = time.time()
-    print('Numeric mapping started at: {}' .format(datetime.datetime.now().strftime("%H:%M:%S")), log_type='info')
-    numeric_data_frame = numeric_mapping(data_frame, mapping_dict)
-    mapping_end_time = time.time() - start_time
-    print('Elapsed time for mapping: ', log_type='info', end='')
-    print('{}'.format(time.strftime("%H:%M:%S", time.gmtime(mapping_end_time))), color='cyan', text_format='bold')
-    print('Numeric mapping complete!', color='green', log_type='info')
-
-    create_output_file(numeric_data_frame, output_dir_path, output_file_name)
+    numeric_mapper(input_file, delimiter, weighted)
 
 
 # Standard boilerplate for running this source code file as a standalone segment
@@ -243,13 +207,20 @@ if __name__ == '__main__':
 
     parser.add_argument('-i', '--input-file', action='store', dest='input_file', required=True,
                         help='Input file absolute path. E.g. /home/user/data/input/file_name.txt/.csv/.dat etc.')
-    parser.add_argument('-s', '--separator', action='store', dest='separator', required=False,
+    parser.add_argument('-d', '--delimiter', action='store', dest='delimiter', required=False,
                         help='Separator for the input and output file. E.g. (,)/(";" need to be quoted)/tab/space.'
-                             'Default is comma (,)')
+                             'Default is whitespace')
     parser.add_argument('-w', '--weighted', action='store', dest='weighted', required=True,
                         help='Boolean - yes/no if the file has weight column')
 
     # Parse arguments
     args = parser.parse_args()
 
-    command_center(input_file=args.input_file, separator=args.separator, weighted=args.weighted)
+    # Double checking the arguments
+    if args.delimiter:
+        _delimiter = args.delimiter
+    else:
+        print('No delimiter provided! Using default (whitespace).....', log_type='info')
+        _delimiter = None
+
+    command_center(input_file=args.input_file, delimiter=_delimiter, weighted=args.weighted)
