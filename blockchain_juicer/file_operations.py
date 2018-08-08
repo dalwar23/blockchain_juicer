@@ -6,6 +6,7 @@ from __future__ import print_function
 # Import python libraries
 import os
 import sys
+import datetime
 from itertools import islice
 try:
     from pyrainbowterm import *
@@ -20,28 +21,18 @@ __email__ = 'dalwar.hossain@protonmail.com'
 
 
 # Get directory path for input/output data
-def get_dir_path(input_file):
+def get_output_file(input_file):
     """
     This function extracts the directory path of input file and creates a new file name for the output file
     :param input_file: A complete file path for input dataset
-    :return: A directory path and a file name
+    :return: A full path for output file
     """
-    # Get file name
-    input_file_name = os.path.basename(input_file)
-    # Create new file name
-    base_file_name, base_file_extension = os.path.splitext(input_file_name)
-    output_file_name = base_file_name + '_numeric' + base_file_extension
-
-    # Get input file's directory
-    input_dir = os.path.dirname(input_file)
-    if os.path.isdir(input_dir):
-        output_dir = input_dir
-    else:
-        print('Can not determine output directory!', log_type='error')
-        sys.exit(1)
+    # Create output file name from input file in the same directory
+    ext = '.txt'
+    output_file_name = input_file.rsplit('.', 1)[0] + '_numeric' + ext
 
     # Return output path
-    return output_dir, output_file_name
+    return output_file_name
 
 
 # Create headers based on weighted or unweighted
@@ -136,13 +127,14 @@ def check_file_header(headers=None):
     :return: 0/1 as header status code
     """
     if headers:
-        print('Headers detected!', log_type='warn', color='orange')
         if headers[0].startswith('#'):
             print('Found commented header!', log_type='info')
             header_status = 1
         else:
             header_status = 0
-            print('Please comment [#] or delete header!', log_type='warn', color='orange')
+            print('Active headers detected! ', log_type='error', color='red', end='')
+            print('Please comment [#] or delete header!', color='red')
+            sys.exit(1)
     else:
         print('No headers detected!', log_type='info')
         header_status = 1
@@ -341,3 +333,16 @@ def sanity_check(input_file=None, column_indexes=None, delimiter=None, output_fi
 
     # Return checked values
     return sanity_status
+
+
+# Create initial message
+def initial_message(script=None):
+    """
+    This function creates initial message and prints it
+    """
+    # Print a general help message
+    date_time = datetime.datetime.now()
+    print_string = "Column based text filtering and processing"
+    print_string += " [ " + date_time.strftime("%d-%B-%Y %H:%M:%S") + " ]"
+    print('=' * len(print_string), print_string, "Need help?: python {} -h/--help".format(script),
+          '=' * len(print_string), sep='\n')

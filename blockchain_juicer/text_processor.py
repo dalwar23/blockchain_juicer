@@ -43,19 +43,17 @@ def numeric_mapping(data_frame, mapping_dict):
 
 
 # Create output file
-def create_output_file(numeric_data_frame, output_dir_path, output_file_name):
+def create_output_file(numeric_data_frame, output_file_name):
     """
     This function creates a file from python pandas data frame
     :param numeric_data_frame: Python pandas data frame
-    :param output_dir_path: A directory path
-    :param output_file_name: A file name with extension
+    :param output_file_name: Output file's full path with extension
     :return: NULL
     """
     # Create numeric output file
-    output_file = os.path.join(output_dir_path, output_file_name)
     print('Creating numerically mapped output file.....', log_type='info')
     try:
-        numeric_data_frame.to_csv(output_file, index=False, header=False)
+        numeric_data_frame.to_csv(output_file_name, index=False, header=False, sep=' ')
         print('Output file creation complete!', color='green', log_type='info')
     except Exception as e:
         print('Can not write output file. ERROR: {}'.format(e), log_type='error')
@@ -165,7 +163,7 @@ def numeric_mapper(input_file=None, delimiter=None, weighted=None):
     sanity_status = file_operations.sanity_check(input_file)
     if sanity_status == 1:
         headers = file_operations.generate_headers(weighted)
-        output_dir_path, output_file_name = file_operations.get_dir_path(input_file)
+        output_file_name = file_operations.get_output_file(input_file)
         data_frame = load_file(input_file, delimiter, headers)
         print('Data cleanup complete!', color='green', log_type='info')
         mapping_dict = extract_nodes(data_frame)
@@ -178,7 +176,7 @@ def numeric_mapper(input_file=None, delimiter=None, weighted=None):
         print('{}'.format(time.strftime("%H:%M:%S", time.gmtime(mapping_end_time))), color='cyan', text_format='bold')
         print('Numeric mapping complete!', color='green', log_type='info')
 
-        create_output_file(numeric_data_frame, output_dir_path, output_file_name)
+        create_output_file(numeric_data_frame, output_file_name)
     else:
         print('Sanity check failed!', log_type='error', color='red')
         sys.exit(1)
@@ -202,13 +200,16 @@ if __name__ == '__main__':
     """
     Parse arguments and follow through to mission control
     """
+    # Print initial message
+    file_operations.initial_message(os.path.basename(__file__))
+
     # Create parser
     parser = argparse.ArgumentParser(add_help=True)
 
     parser.add_argument('-i', '--input-file', action='store', dest='input_file', required=True,
                         help='Input file absolute path. E.g. /home/user/data/input/file_name.txt/.csv/.dat etc.')
     parser.add_argument('-d', '--delimiter', action='store', dest='delimiter', required=False,
-                        help='Separator for the input and output file. E.g. (,)/(";" need to be quoted)/tab/space.'
+                        help='Separator for the input and output file. E.g. (,)/(";" need to be quoted)/tab/space. '
                              'Default is whitespace')
     parser.add_argument('-w', '--weighted', action='store', dest='weighted', required=True,
                         help='Boolean - yes/no if the file has weight column')

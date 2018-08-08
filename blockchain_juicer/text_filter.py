@@ -39,7 +39,7 @@ def create_command(input_file, columns_to_use, column_separator, output_file):
     index_length = len(column_indexes)
     for item in column_indexes:
         if count < index_length:
-            segment = prefix + item + '","'
+            segment = prefix + item + '" "'
             command_segment += segment
             count += 1
         else:
@@ -103,9 +103,6 @@ def filter_columns(input_file=None, column_indexes=None, delimiter=None, output_
         print('Sanity check failed!', log_type='error', color='red')
         sys.exit(1)
 
-    # rest of the function calls
-    pass
-
 
 # Command Center
 def command_center(input_file=None, column_indexes=None, delimiter=None, output_file=None):
@@ -117,7 +114,7 @@ def command_center(input_file=None, column_indexes=None, delimiter=None, output_
     :param output_file: A file path where the output will be stored
     :return: NULL
     """
-    print('Initializing.....', color='green', log_type='info')
+    print('Initializing.....', log_type='info')
 
     filter_columns(input_file, column_indexes, delimiter, output_file)
 
@@ -127,6 +124,9 @@ if __name__ == "__main__":
     """
     Parse given arguments and follow through to mission control
     """
+    # Print initial message
+    file_operations.initial_message(os.path.basename(__file__))
+
     # Create parser
     parser = argparse.ArgumentParser(add_help=True)
 
@@ -135,7 +135,7 @@ if __name__ == "__main__":
     parser.add_argument('-c', '--columns', action='store', dest='columns', required=True,
                         help='Index of the columns (comma separated, index starting from 1) E.g. 1,4,2,5.')
     parser.add_argument('-d', '--delimiter', action='store', dest='delimiter', required=False,
-                        help='Separator for the input and output file. E.g. (,)/(";" need to be quoted)/tab/space.'
+                        help='Separator for the input file. E.g. (,)/(";" need to be quoted)/tab/space.'
                              'Default is whitespace')
     parser.add_argument('-o', '--output-file', action='store', dest='output_file', required=True,
                         help='Output file absolute path. E.g. /home/user/data/output/file_name.txt/.csv/.dat etc.')
