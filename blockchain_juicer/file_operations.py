@@ -336,13 +336,29 @@ def sanity_check(input_file=None, column_indexes=None, delimiter=None, output_fi
 
 
 # Create initial message
-def initial_message(script=None):
+def initial_message(script=None, custom_message=None):
     """
     This function creates initial message and prints it
     """
+    marker = '-'  # Must be single character
     # Print a general help message
     date_time = datetime.datetime.now()
-    print_string = "Column based text filtering and processing"
-    print_string += " [ " + date_time.strftime("%d-%B-%Y %H:%M:%S") + " ]"
-    print('=' * len(print_string), print_string, "Need help?: python {} -h/--help".format(script),
-          '=' * len(print_string), sep='\n')
+    _print_string = "Column based text filtering and processing"
+    _print_string += " [ " + date_time.strftime("%d-%B-%Y %H:%M:%S") + " ]"
+    # Help message display
+    _help_string = "Need help?: python {} -h/--help".format(script)
+    # Create prefix and suffix
+    prefix = marker * 2 + ' '
+    suffix = ' ' + marker * 2
+    print_string = prefix + _print_string
+    custom_message = prefix + custom_message
+    help_string = prefix + _help_string
+    # Take max
+    str_length = max([len(print_string), len(custom_message), len(help_string)]) + 3
+    # Create padding
+    print_string = print_string + " " * (str_length - len(print_string) - len(suffix)) + suffix
+    custom_message = custom_message + " " * (str_length - len(custom_message) - len(suffix)) + suffix
+    help_string = help_string + " " * (str_length - len(help_string) - len(suffix)) + suffix
+    # Print
+    line_block = marker * str_length
+    print(line_block, print_string, custom_message, help_string, line_block, sep='\n')

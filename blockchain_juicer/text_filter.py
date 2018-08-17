@@ -85,7 +85,8 @@ def filter_columns(input_file=None, column_indexes=None, delimiter=None, output_
     :return: File object
     """
     # Check sanity of input
-    sanity_status = file_operations.sanity_check(input_file, column_indexes, delimiter, output_file)
+    sanity_status = file_operations.sanity_check(input_file=input_file, column_indexes=column_indexes,
+                                                 delimiter=delimiter, output_file=output_file)
 
     # Check if sanity check is Okay
     if sanity_status == 1:

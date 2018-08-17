@@ -98,7 +98,7 @@ def clean_convert_weight(x):
     """
     x = x.replace(' ', '').replace('\n', '')
     x = int(x)
-    log_x = round(math.log(1 + x), 6)
+    log_x = round(math.log(1 + x), 2)
     return log_x
 
 
@@ -160,7 +160,7 @@ def numeric_mapper(input_file=None, delimiter=None, weighted=None):
     :param weighted: yes/no if the file contains weights of the edges or not
     :return: file object
     """
-    sanity_status = file_operations.sanity_check(input_file)
+    sanity_status = file_operations.sanity_check(input_file=input_file)
     if sanity_status == 1:
         headers = file_operations.generate_headers(weighted)
         output_file_name = file_operations.get_output_file(input_file)
@@ -189,7 +189,7 @@ def command_center(input_file=None, delimiter=None, weighted=None):
     :param input_file: Input file path
     :param delimiter: Optional separator for he column of the input file
     :param weighted: Simple yes/no if the input file is weighted or not
-    :rtype: NULL
+    :rtype: <>
     """
     print('Initializing.....', color='green', log_type='info')
     numeric_mapper(input_file, delimiter, weighted)
